@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [tab, setTab] = useState(searchParams.get('tab') === 'register' ? 'register' : 'login')
+  const [tab, setTab] = useState('login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -18,6 +18,12 @@ export default function LoginPage() {
     password: '',
     role: 'WORKER',
   })
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'register') {
+      setTab('register')
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -139,5 +145,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="container max-w-md mx-auto py-16 px-4 text-center text-muted-foreground">加载中...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

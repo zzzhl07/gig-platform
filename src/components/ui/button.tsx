@@ -14,7 +14,7 @@ function Button({ className, variant = 'default', size = 'md', ...props }: Butto
         {
           'bg-primary text-primary-foreground hover:bg-primary/90': variant === 'primary',
           'bg-secondary text-secondary-foreground hover:bg-secondary/80': variant === 'default',
-          'bg-secondary text-secondary-foreground hover:bg-secondary/80': variant === 'secondary',
+          'bg-accent text-accent-foreground hover:bg-accent/80': variant === 'secondary',
           'border border-input bg-background hover:bg-accent hover:text-accent-foreground': variant === 'outline',
           'hover:bg-accent hover:text-accent-foreground': variant === 'ghost',
           'bg-destructive text-destructive-foreground hover:bg-destructive/90': variant === 'danger',
