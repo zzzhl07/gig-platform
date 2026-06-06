@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  passwordHash    String
+  role            String   @default("WORKER") // ENTERPRISE | WORKER
+  phone           String?  // 电话（仅在订单确认后可见）
+  wechat          String?  // 微信（仅在订单确认后可见）
+  avatar          String?
+  bio             String?
+  skills          String   @default("[]") // JSON array
+  rating          Float    @default(0)
+  completedTasks  Int      @default(0)
+  walletBalance   Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  postedTasks      Task[]
+  workerOrders     Order[]           @relation("WorkerOrders")
+  enterpriseOrders Order[]           @relation("EnterpriseOrders")
+  sentReviews      Review[]          @relation("ReviewSender")
+  receivedReviews  Review[]          @relation("ReviewReceiver")
+  sentMessages     Message[]         @relation("MessageSender")
+  receivedMessages Message[]         @relation("MessageReceiver")
+  transactions     Transaction[]
+  communityPosts   CommunityPost[]
+  communityComments CommunityComment[]
+}
+
+model Task {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  budgetMin       Float?
+  budgetMax       Float?
+  deadline        DateTime?
+  status          String   @default("OPEN") // OPEN | IN_PROGRESS | COMPLETED | CANCELLED
+  category        String?            // 工种分类
+  subCategory     String?            // 细分
+  skills          String   @default("[]") // JSON array
+  attachments     String   @default("[]") // JSON array
+  userId          String
+  workerId        String?
+
+  // 隐私与保密
+  isConfidential  Boolean  @default(false) // 是否保密任务
+  hideBidderInfo  Boolean  @default(true)  // 对非中标人隐藏申请人信息
+  isRemote        Boolean  @default(true)  // 是否远程工作
+  location        String?                  // 工作地点（线下用）
+  locationDetail  String?                  // 详细地址
+
+  user      User   @relation(fields: [userId], references: [id])
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  taskId          String
+  enterpriseId    String
+  workerId        String
+  status          String   @default("PENDING") // PENDING | ACTIVE | SUBMITTED | REVIEWING | COMPLETED | DISPUTED | CANCELLED
+  agreedPrice     Float?
+  workerSubmit    String?  // JSON: worker's submission
+  enterpriseFeedback String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  task          Task    @relation(fields: [taskId], references: [id])
+  enterprise    User    @relation("EnterpriseOrders", fields: [enterpriseId], references: [id])
+  worker        User    @relation("WorkerOrders", fields: [workerId], references: [id])
+  review        Review?
+  transactions  Transaction[]
+  messages      Message[]
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  fromId    String
+  toId      String
+  rating    Int      // 1-5
+  content   String?
+  createdAt DateTime @default(now())
+
+  order  Order @relation(fields: [orderId], references: [id])
+  from   User  @relation("ReviewSender", fields: [fromId], references: [id])
+  to     User  @relation("ReviewReceiver", fields: [toId], references: [id])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  orderId   String?
+  userId    String
+  fromId    String?
+  toId      String?
+  amount    Float
+  type      String   // DEPOSIT | WITHDRAW | PAY | RELEASE | REFUND
+  status    String   @default("SUCCESS") // PENDING | SUCCESS | FAILED
+  createdAt DateTime @default(now())
+
+  order Order? @relation(fields: [orderId], references: [id])
+  user  User   @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  orderId    String?
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+  receiver User   @relation("MessageReceiver", fields: [receiverId], references: [id])
+  order    Order? @relation(fields: [orderId], references: [id])
+}
+
+// ===== 社区讨论 =====
+
+model CommunityPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   @default("general") // general | share | question | feedback | recruitment
+  tags      String   @default("[]")      // JSON array
+  userId    String
+  likes     Int      @default(0)
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id])
+  comments CommunityComment[]
+}
+
+model CommunityComment {
+  id        String   @id @default(cuid())
+  content   String
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post CommunityPost @relation(fields: [postId], references: [id])
+  user User          @relation(fields: [userId], references: [id])
+}
